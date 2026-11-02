@@ -2384,6 +2384,36 @@ class SettingsRandomizer:
         "max_bytes_for_external_set_cache": threshold_generator(
             0.2, 0.2, 0, 128 * 1024 * 1024
         ),
+        # New in 26.10 / 26.11 and off by default, so only a draw covers them
+        "query_plan_top_k_through_array_join": lambda: random.random() < 0.3,
+        "adaptive_aggregator_disable_thaw": lambda: random.random() < 0.3,
+        # Inert unless external GROUP BY (randomized above) spills; 1 writes each state at once
+        "min_bytes_before_external_group_by": lambda: random.choice(
+            [0, 1, 1024 * 1024, 16 * 1024 * 1024]
+        ),
+        "use_iceberg_manifest_statistics": lambda: random.random() < 0.3,
+        # New in 26.10 / 26.11 and on by default: now and then take the old path
+        "query_plan_lazy_materialization_for_join": lambda: random.random() > 0.05,
+        "query_plan_aggregation_having_prefilter": lambda: random.random() > 0.05,
+        "query_plan_convert_outer_join_to_inner_join_transitively": lambda: random.random() > 0.05,
+        "query_plan_filter_push_down_below_limit_by": lambda: random.random() > 0.05,
+        "query_plan_replace_always_true_filter": lambda: random.random() > 0.05,
+        "optimize_constant_columns_after_filter": lambda: random.random() > 0.05,
+        "optimize_rewrite_array_filter_length_to_array_count": lambda: random.random() > 0.05,
+        "allow_parallel_distinct": lambda: random.random() > 0.05,
+        "short_circuit_function_evaluation_reorder_arguments": lambda: random.random() > 0.05,
+        "group_by_top_k_optimization_shared_boundary": lambda: random.random() > 0.05,
+        "use_aggregation_memory_tracker": lambda: random.random() > 0.05,
+        "analyze_index_with_multiple_key_columns_per_condition": lambda: random.random() > 0.05,
+        "optimize_min_max_from_files": lambda: random.random() > 0.05,
+        "use_text_index_pattern_bypass_cache": lambda: random.random() > 0.05,
+        "parallel_replicas_filter_pushdown": lambda: random.random() > 0.05,
+        "parallel_replicas_for_object_storage_tables": lambda: random.random() > 0.05,
+        "distributed_plan_partial_aggregation_before_shuffle": lambda: random.random() > 0.05,
+        # 1 leaves almost every OR filter to per-index evaluation, 128 is the default
+        "use_skip_indexes_for_disjunctions_max_rpn_elements": lambda: random.choice([1, 8, 128, 1000]),
+        # A tiny initial tail forces a second read of the Parquet footer
+        "input_format_parquet_footer_read_size": lambda: random.choice([0, 1, 1024, 65536]),
     }
 
     dependent_settings = {
@@ -2406,6 +2436,7 @@ class SettingsRandomizer:
         "enable_join_seal_gated_reading": "enable_join_runtime_filters",
         # part pruning via statistics requires statistics to be enabled
         "use_statistics_for_part_pruning": "use_statistics",
+        "use_iceberg_manifest_statistics": "use_statistics",
         # reverse-order FINAL reads only apply when reading in order at all
         "optimize_read_in_reverse_order_final": "optimize_read_in_order",
         # the top-k variant of the query condition cache needs the cache itself to be on
@@ -2585,6 +2616,7 @@ class MergeTreeSettingsRandomizer:
         "patch_parts_version": lambda: random.choice(["v1", "v2"]),
         "use_primary_key_cache": lambda: random.randint(0, 1),
         "prewarm_primary_key_cache": lambda: random.randint(0, 1),
+        "prewarm_statistics_cache": lambda: random.randint(0, 1),
         # When the primary key reaches memory, not what it contains. Rarely off: MergeTreeData
         # getPrimaryIndexCache needs use_primary_key_cache AND this, so drawing it off takes the
         # two cache settings above out of play with it.
@@ -2621,6 +2653,13 @@ class MergeTreeSettingsRandomizer:
         # "optimize_row_order": lambda: random.randint(0, 1),
         "enable_shared_storage_snapshot_in_query": lambda: random.randint(0, 1),
         "min_columns_to_activate_adaptive_write_buffer": lambda: random.randint(0, 1000),
+        "max_memory_ratio_to_activate_adaptive_write_buffer": lambda: random.choice([0, 0.03125, 1]),
+        # 1 moves the buffered data of every packed part to temporary files
+        "max_bytes_to_buffer_for_packed_part": lambda: random.choice([0, 1, 1024 * 1024]),
+        # Coalescing of `_row_exists = 0` updates in mutations; a limit below 2 disables it
+        "enable_row_mask_update_coalescing": lambda: random.random() > 0.3,
+        "max_row_mask_update_coalescing_keys": lambda: random.choice([1, 2, 256]),
+        "max_row_mask_update_coalescing_commands": lambda: random.choice([1, 2, 4096]),
         "reduce_blocking_parts_sleep_ms": lambda: random.randint(200, 2000),
         # Part-header storage format in ZooKeeper; only the layout changes, not the parts
         #"use_minimalistic_part_header_in_zookeeper": lambda: random.randint(0, 1),
