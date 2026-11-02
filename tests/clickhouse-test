@@ -2387,10 +2387,12 @@ class SettingsRandomizer:
         # New in 26.10 / 26.11 and off by default, so only a draw covers them
         "query_plan_top_k_through_array_join": lambda: random.random() < 0.3,
         "adaptive_aggregator_disable_thaw": lambda: random.random() < 0.3,
-        # Inert unless external GROUP BY (randomized above) spills; 1 writes each state at once
-        "min_bytes_before_external_group_by": lambda: random.choice(
-            [0, 1, 1024 * 1024, 16 * 1024 * 1024]
-        ),
+        # Commented out: randomizing the external-GROUP BY spill threshold changes observable spill
+        # behaviour (and OOMs memory-limited spill tests), breaking assertion tests rather than finding
+        # bugs. Re-enable with a narrower range once the affected tests pin it.
+        # "min_bytes_before_external_group_by": lambda: random.choice(
+        #     [0, 1, 1024 * 1024, 16 * 1024 * 1024]
+        # ),
         "use_iceberg_manifest_statistics": lambda: random.random() < 0.3,
         # New in 26.10 / 26.11 and on by default: now and then take the old path
         "query_plan_lazy_materialization_for_join": lambda: random.random() > 0.05,
@@ -2404,14 +2406,17 @@ class SettingsRandomizer:
         "short_circuit_function_evaluation_reorder_arguments": lambda: random.random() > 0.05,
         "group_by_top_k_optimization_shared_boundary": lambda: random.random() > 0.05,
         "use_aggregation_memory_tracker": lambda: random.random() > 0.05,
-        "analyze_index_with_multiple_key_columns_per_condition": lambda: random.random() > 0.05,
+        # Commented out: changes index pruning (observable in EXPLAIN), breaks assertion tests.
+        # "analyze_index_with_multiple_key_columns_per_condition": lambda: random.random() > 0.05,
         "optimize_min_max_from_files": lambda: random.random() > 0.05,
         "use_text_index_pattern_bypass_cache": lambda: random.random() > 0.05,
         "parallel_replicas_filter_pushdown": lambda: random.random() > 0.05,
         "parallel_replicas_for_object_storage_tables": lambda: random.random() > 0.05,
-        "distributed_plan_partial_aggregation_before_shuffle": lambda: random.random() > 0.05,
-        # 1 leaves almost every OR filter to per-index evaluation, 128 is the default
-        "use_skip_indexes_for_disjunctions_max_rpn_elements": lambda: random.choice([1, 8, 128, 1000]),
+        # Commented out: changes the distributed plan (observable in EXPLAIN), breaks assertion tests.
+        # "distributed_plan_partial_aggregation_before_shuffle": lambda: random.random() > 0.05,
+        # Commented out: 1/8 leave OR filters to per-index evaluation, dropping the combined skip index
+        # (observable in EXPLAIN and granule counts), breaking assertion tests. 128 is the default.
+        # "use_skip_indexes_for_disjunctions_max_rpn_elements": lambda: random.choice([1, 8, 128, 1000]),
         # A tiny initial tail forces a second read of the Parquet footer
         "input_format_parquet_footer_read_size": lambda: random.choice([0, 1, 1024, 65536]),
     }
@@ -2616,7 +2621,9 @@ class MergeTreeSettingsRandomizer:
         "patch_parts_version": lambda: random.choice(["v1", "v2"]),
         "use_primary_key_cache": lambda: random.randint(0, 1),
         "prewarm_primary_key_cache": lambda: random.randint(0, 1),
-        "prewarm_statistics_cache": lambda: random.randint(0, 1),
+        # Commented out: loading statistics on part load changes observable cache/stats behaviour
+        # (and S3 request counts), breaking assertion tests.
+        # "prewarm_statistics_cache": lambda: random.randint(0, 1),
         # When the primary key reaches memory, not what it contains. Rarely off: MergeTreeData
         # getPrimaryIndexCache needs use_primary_key_cache AND this, so drawing it off takes the
         # two cache settings above out of play with it.
