@@ -17,6 +17,10 @@
 -- The rebuilt join then fans those 2 state rows out to 100000 distinct `g` values, so only the
 -- top merge crosses the two-level threshold and the external-aggregation limit.
 
+-- Pin to default: CI randomizes min_bytes_before_external_group_by up to 16 MiB, which suppresses the
+-- spilling this test exercises.
+SET min_bytes_before_external_group_by = 0;
+
 DROP TABLE IF EXISTS t_spill_facts;
 DROP TABLE IF EXISTS t_spill_dims;
 

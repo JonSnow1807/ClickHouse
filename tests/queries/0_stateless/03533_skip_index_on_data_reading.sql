@@ -6,6 +6,9 @@
 
 SET use_skip_indexes_on_data_read = 1;
 SET max_rows_to_read = 0;
+-- Pin the disjunction RPN budget to its default: CI randomizes it as low as 1, changing which skip
+-- indexes are used for the OR conditions this test asserts on.
+SET use_skip_indexes_for_disjunctions_max_rpn_elements = 128;
 
 set use_query_condition_cache=0;
 set merge_tree_read_split_ranges_into_intersecting_and_non_intersecting_injection_probability=0;
