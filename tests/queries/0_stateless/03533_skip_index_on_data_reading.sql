@@ -2,10 +2,6 @@
 -- no-parallel-replicas: use_skip_indexes_on_data_read is not supported with parallel replicas
 -- add_minmax_index_for_numeric_columns=0: Changes the plan and rows read
 
--- Set before `-- { echo ON }` so it is not echoed into the output: pin the disjunction RPN budget to
--- its default, which changes which skip indexes are used for the OR conditions below.
-SET use_skip_indexes_for_disjunctions_max_rpn_elements = 128;
-
 -- { echo ON }
 
 SET use_skip_indexes_on_data_read = 1;
