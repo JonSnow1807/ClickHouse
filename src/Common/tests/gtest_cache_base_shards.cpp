@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <future>
 #include <limits>
 #include <memory>
 #include <set>
@@ -407,6 +408,58 @@ TEST(CacheBaseShards, ConcurrentClearKeepsGetOrSetConsistent)
     ASSERT_EQ(wrong_values.load(), 0u);
     for (const auto & entry : cache.dump())
         ASSERT_EQ(*entry.mapped, static_cast<size_t>(entry.key + 1));
+}
+
+TEST(CacheBaseShards, LoaderFinishingAfterClearDoesNotDropTheNextLoadersToken)
+{
+    /// Loader A is in flight for a key when the cache is cleared, and loader B starts for the same key while A is still
+    /// loading. A's value has to stay out of the cache (its token was cleared), and A's cleanup has to leave B's token
+    /// alone, so that B's value is cached when B finishes. With one shard this is the protocol of the unsharded cache.
+    auto cache = makeCache("SLRU", 1);
+
+    std::promise<void> a_started;
+    std::promise<void> a_may_finish;
+    std::promise<void> b_started;
+    std::promise<void> b_may_finish;
+    auto a_started_future = a_started.get_future();
+    auto a_may_finish_future = a_may_finish.get_future();
+    auto b_started_future = b_started.get_future();
+    auto b_may_finish_future = b_may_finish.get_future();
+
+    std::thread loader_a([&]
+    {
+        cache.getOrSet(1, [&]
+        {
+            a_started.set_value();
+            a_may_finish_future.wait();
+            return std::make_shared<size_t>(10);
+        });
+    });
+    a_started_future.wait();
+
+    cache.clear();
+
+    std::thread loader_b([&]
+    {
+        cache.getOrSet(1, [&]
+        {
+            b_started.set_value();
+            b_may_finish_future.wait();
+            return std::make_shared<size_t>(20);
+        });
+    });
+    b_started_future.wait();
+
+    a_may_finish.set_value();
+    loader_a.join();
+
+    b_may_finish.set_value();
+    loader_b.join();
+
+    auto value = cache.get(1);
+    ASSERT_NE(value, nullptr);
+    ASSERT_EQ(*value, 20u);
+    ASSERT_EQ(cache.count(), 1u);
 }
 
 TEST(CacheBaseShards, DefaultArgumentMeansOneShard)

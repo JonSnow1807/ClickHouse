@@ -673,7 +673,12 @@ private:
         void cleanup(std::lock_guard<std::mutex> & /* token_lock */, std::lock_guard<std::mutex> & /* cache_lock */)
             TSA_NO_THREAD_SAFETY_ANALYSIS // disabled only because we can't reference the mutex of the shard from here
         {
-            token->shard.insert_tokens.erase(*key);
+            /// Only this token leaves the map. A concurrent clear() may have removed it already, and a later getOrSet()
+            /// for the same key may have put a new token there whose loader is still running and still has to find it.
+            auto & insert_tokens = token->shard.insert_tokens;
+            auto it = insert_tokens.find(*key);
+            if (it != insert_tokens.end() && it->second.get() == token.get())
+                insert_tokens.erase(it);
             token->cleaned_up = true;
             cleaned_up = true;
         }
