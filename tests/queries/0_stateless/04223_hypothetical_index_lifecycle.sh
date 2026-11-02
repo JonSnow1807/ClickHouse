@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tags: long, no-replicated-database, no-random-settings, no-random-merge-tree-settings
+# Tags: long, no-replicated-database, no-msan, no-random-settings, no-random-merge-tree-settings
 # no-replicated-database: hypothetical indexes are session-scoped and not replicated
 # no-random-settings, no-random-merge-tree-settings: the test asserts exact EXPLAIN WHATIF
 #   diagnostics (plan shape, applicability, statistical-vs-applicability source, part/mark
