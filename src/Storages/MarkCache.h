@@ -6,6 +6,7 @@
 #include <Common/ProfileEvents.h>
 #include <Common/HashTable/Hash.h>
 #include <Formats/MarkInCompressedFile.h>
+#include <base/unit.h>
 
 
 namespace ProfileEvents
@@ -42,11 +43,21 @@ private:
     using Base = CacheBase<UInt128, MarksInCompressedFile, UInt128TrivialHash, MarksWeightFunction>;
 
 public:
+    /// `num_shards` stripes the cache over that many locks, see `CacheBase`; with one shard (the default) there is one lock.
     MarkCache(const String & cache_policy,
         CurrentMetrics::Metric size_in_bytes_metric,
         CurrentMetrics::Metric count_metric,
         size_t max_size_in_bytes,
-        double size_ratio);
+        double size_ratio,
+        size_t num_shards = 1);
+
+    /// The number of shards for a cache of `max_size_in_bytes`: `configured_num_shards` itself, or when that is 0 (the
+    /// server setting `mark_cache_shards` set to automatic) one shard per `AUTO_BYTES_PER_SHARD` of the size, at most one
+    /// per CPU core the server may use and at most `MAX_AUTO_SHARDS`. The marks of a file are cached only if they fit into
+    /// the share of their shard, so a small cache gets few shards.
+    static constexpr size_t AUTO_BYTES_PER_SHARD = 256_MiB;
+    static constexpr size_t MAX_AUTO_SHARDS = 64;
+    static size_t chooseNumberOfShards(size_t configured_num_shards, size_t max_size_in_bytes);
 
     /// Calculate key from path to file.
     static UInt128 hash(const String & path_to_file);

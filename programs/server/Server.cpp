@@ -333,6 +333,7 @@ namespace ServerSetting
     extern const ServerSettingsUInt64 jemalloc_profiler_sampling_rate;
     extern const ServerSettingsSeconds keep_alive_timeout;
     extern const ServerSettingsString mark_cache_policy;
+    extern const ServerSettingsUInt64 mark_cache_shards;
     extern const ServerSettingsUInt64 mark_cache_size;
     extern const ServerSettingsDouble mark_cache_size_ratio;
     extern const ServerSettingsString unique_key_index_cache_policy;
@@ -2315,7 +2316,9 @@ try
         mark_cache_size = max_cache_size;
         LOG_INFO(log, "Lowered mark cache size to {} because the system has limited RAM", formatReadableSizeWithBinarySuffix(mark_cache_size));
     }
-    global_context->setMarkCache(mark_cache_policy, mark_cache_size, mark_cache_size_ratio);
+    size_t mark_cache_shards = server_settings[ServerSetting::mark_cache_shards];
+    global_context->setMarkCache(mark_cache_policy, mark_cache_size, mark_cache_size_ratio, mark_cache_shards);
+    LOG_INFO(log, "Mark cache is split into {} shard(s)", global_context->getMarkCache()->numberOfShards());
 
     String unique_key_index_cache_policy_name = server_settings[ServerSetting::unique_key_index_cache_policy];
     size_t unique_key_index_cache_size = server_settings[ServerSetting::unique_key_index_cache_size_bytes];

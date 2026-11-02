@@ -1711,7 +1711,8 @@ public:
     GPU::GPUDevice & getGPU() const;
 #endif
 
-    void setMarkCache(const String & cache_policy, size_t max_cache_size_in_bytes, double size_ratio);
+    /// `num_shards` as the server setting `mark_cache_shards` defines it: 0 chooses the number automatically.
+    void setMarkCache(const String & cache_policy, size_t max_cache_size_in_bytes, double size_ratio, size_t num_shards = 1);
     void updateMarkCacheConfiguration(const Poco::Util::AbstractConfiguration & config, size_t max_cache_size);
     std::shared_ptr<MarkCache> getMarkCache() const;
     void clearMarkCache() const;

@@ -5307,14 +5307,22 @@ void Context::clearPageCache() const
     JemallocCacheArena::purge();
 }
 
-void Context::setMarkCache(const String & cache_policy, size_t max_cache_size_in_bytes, double size_ratio)
+void Context::setMarkCache(const String & cache_policy, size_t max_cache_size_in_bytes, double size_ratio, size_t num_shards)
 {
     std::lock_guard lock(shared->mutex);
 
     if (shared->mark_cache)
         throw Exception(ErrorCodes::LOGICAL_ERROR, "Mark cache has been already created.");
 
-    shared->mark_cache = std::make_shared<MarkCache>(cache_policy, CurrentMetrics::MarkCacheBytes, CurrentMetrics::MarkCacheFiles, max_cache_size_in_bytes, size_ratio);
+    /// The number of shards is fixed here: a reload of the configuration resizes the cache, which splits the new size
+    /// over the shards again (see `updateMarkCacheConfiguration`), but does not change their number.
+    shared->mark_cache = std::make_shared<MarkCache>(
+        cache_policy,
+        CurrentMetrics::MarkCacheBytes,
+        CurrentMetrics::MarkCacheFiles,
+        max_cache_size_in_bytes,
+        size_ratio,
+        MarkCache::chooseNumberOfShards(num_shards, max_cache_size_in_bytes));
 }
 
 void Context::updateMarkCacheConfiguration(const Poco::Util::AbstractConfiguration & config, size_t max_cache_size)

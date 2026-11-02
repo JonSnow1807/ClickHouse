@@ -193,6 +193,7 @@ namespace ServerSetting
     extern const ServerSettingsDouble text_index_postings_cache_size_ratio;
     extern const ServerSettingsUInt64 io_thread_pool_queue_size;
     extern const ServerSettingsString mark_cache_policy;
+    extern const ServerSettingsUInt64 mark_cache_shards;
     extern const ServerSettingsUInt64 mark_cache_size;
     extern const ServerSettingsDouble mark_cache_size_ratio;
     extern const ServerSettingsString unique_key_bitmap_cache_policy;
@@ -1778,7 +1779,8 @@ void LocalServer::processConfig()
         mark_cache_size = max_cache_size;
         LOG_INFO(log, "Lowered mark cache size to {} because the system has limited RAM", formatReadableSizeWithBinarySuffix(mark_cache_size));
     }
-    global_context->setMarkCache(mark_cache_policy, mark_cache_size, mark_cache_size_ratio);
+    size_t mark_cache_shards = server_settings[ServerSetting::mark_cache_shards];
+    global_context->setMarkCache(mark_cache_policy, mark_cache_size, mark_cache_size_ratio, mark_cache_shards);
 
     String columns_cache_policy = server_settings[ServerSetting::columns_cache_policy];
     /// Unless configured explicitly, the columns cache is sized relative to the memory of the server.

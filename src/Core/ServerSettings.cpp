@@ -653,6 +653,16 @@ This setting can be modified at runtime and will take effect immediately.
 </Note>
 )", 0) \
     DECLARE(Double, mark_cache_size_ratio, DEFAULT_MARK_CACHE_SIZE_RATIO, R"(The size of the protected queue (in case of SLRU policy) in the mark cache relative to the cache's total size.)", 0) \
+    DECLARE(UInt64, mark_cache_shards, 1, R"(
+The number of shards of the mark cache. A shard is a cache of its own, with its own lock and an equal share of [`mark_cache_size`](#mark_cache_size); the marks of a file always live in the shard that the hash of the file path selects. With several shards, the threads of concurrent queries that hit the cache do not wait for each other on one lock, which matters for many concurrent short queries on a server with many cores. The eviction order (see [`mark_cache_policy`](#mark_cache_policy)) is kept per shard, and the marks of a file are cached only if they fit into the share of their shard.
+
+Possible values:
+- `1` (default): one cache with one lock.
+- A number greater than `1`: that many shards.
+- `0`: automatic: one shard per 256 MiB of `mark_cache_size`, at most one per CPU core and at most 64.
+
+Applied at startup.
+)", 0) \
     DECLARE(Double, mark_cache_prewarm_ratio, 0.95, R"(The ratio of total size of mark cache to fill during prewarm.)", 0) \
     DECLARE(String, unique_key_index_cache_policy, "SLRU", R"(UNIQUE KEY index cache eviction policy name. Possible values: `LRU`, `SLRU`, `SIEVE`.)", 0) \
     DECLARE(UInt64, unique_key_index_cache_size_bytes, 1_GiB, R"(Maximum size (bytes) of the in-process cache for UNIQUE KEY index (SST) blocks. Set to 0 to disable the cache.)", 0) \
