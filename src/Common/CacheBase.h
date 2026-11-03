@@ -13,6 +13,7 @@
 #include <base/defines.h>
 
 #include <atomic>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -386,7 +387,7 @@ public:
             if (res.empty())
                 res = std::move(shard_entries);
             else
-                res.insert(res.end(), std::make_move_iterator(shard_entries.begin()), std::make_move_iterator(shard_entries.end()));
+                std::move(shard_entries.begin(), shard_entries.end(), std::back_inserter(res));
         }
         return res;
     }

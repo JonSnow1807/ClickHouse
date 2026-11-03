@@ -105,6 +105,7 @@
 #include <Access/ContextAccess.h>
 #include <Access/User.h>
 #include <Storages/MaterializedView/RefreshSet.h>
+#include <Storages/MarkCache.h>
 #include <Storages/MergeTree/MergeTreeBackgroundExecutor.h>
 #include <Storages/MergeTree/MergeTreeSettings.h>
 #include <Storages/MergeTree/ColumnsCache.h>
